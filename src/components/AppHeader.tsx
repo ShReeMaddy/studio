@@ -1,9 +1,9 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Menu, MonitorSmartphone, Settings, RadioTower, Video } from "lucide-react";
 import type { Dispatch, SetStateAction } from 'react';
+import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   currentTab: string;
@@ -73,7 +73,13 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] p-4">
+              <SheetContent 
+                side="right" 
+                className={cn(
+                  "w-[280px] p-4",
+                  "bg-sidebar text-sidebar-foreground border-sidebar-border" 
+                )}
+              >
                  <div className="flex items-center mb-6">
                     <svg
                         width="32"
@@ -81,7 +87,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                         viewBox="0 0 24 24"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className="mr-2 text-primary"
+                        className="mr-2 text-primary" // Will use --sidebar-primary
                         aria-label="DualCast Logo"
                     >
                         <path
@@ -94,23 +100,23 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                         opacity="0.7"
                         />
                     </svg>
-                    <SheetTitle className="text-xl font-bold">DualCast Menu</SheetTitle>
+                    <SheetTitle className="text-xl font-bold text-sidebar-foreground">DualCast Menu</SheetTitle>
                 </div>
                 <nav className="grid gap-3">
                   {navItems.map((item) => (
-                     <Button
-                        key={item.id}
-                        variant={currentTab === item.id ? "default" : "ghost"}
-                        onClick={() => {
-                          setCurrentTab(item.id);
-                          // Assuming Sheet has a prop to close on navigation, or a manual close function could be passed
-                        }}
-                        className="flex items-center space-x-3 justify-start p-3 text-base"
-                        aria-current={currentTab === item.id ? "page" : undefined}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.label}</span>
-                      </Button>
+                    <SheetClose asChild key={item.id}>
+                       <Button
+                          variant={currentTab === item.id ? "default" : "ghost"} 
+                          onClick={() => {
+                            setCurrentTab(item.id);
+                          }}
+                          className="flex items-center space-x-3 justify-start p-3 text-base"
+                          aria-current={currentTab === item.id ? "page" : undefined}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.label}</span>
+                        </Button>
+                    </SheetClose>
                   ))}
                 </nav>
               </SheetContent>
@@ -121,4 +127,3 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
     </header>
   );
 }
-

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,25 +36,52 @@ const formSchema = z.object({
   storagePreference: z.enum(["cloud", "local"]).default("cloud"),
 });
 
-type ThemeColors = {
-  background: string;
-  foreground: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  border: string;
-  input: string;
-  ring: string;
+// Base HSL values for the default (Light Lavender) theme
+const lightThemeColors = {
+  background: "255 100% 97%",
+  foreground: "240 10% 3.9%",
+  card: "255 100% 98%",
+  cardForeground: "240 10% 3.9%",
+  popover: "255 100% 98%",
+  popoverForeground: "240 10% 3.9%",
+  primary: "250 60% 65%",
+  primaryForeground: "255 100% 99%",
+  secondary: "200 100% 90%",
+  secondaryForeground: "200 60% 30%",
+  muted: "220 20% 96%",
+  mutedForeground: "220 10% 45%",
+  accent: "150 70% 80%",
+  accentForeground: "150 50% 30%",
+  destructive: "0 84.2% 60.2%",
+  destructiveForeground: "0 0% 98%",
+  border: "250 30% 85%",
+  input: "250 30% 90%",
+  ring: "250 60% 55%",
 };
 
-const themes = [
-  { name: "default", label: "Light Lavender", colors: { background: "255 100% 97%", foreground: "240 10% 3.9%", primary: "250 60% 65%", secondary: "200 100% 90%", accent: "150 70% 80%", border: "250 30% 85%", input: "250 30% 90%", ring: "250 60% 55%" }},
-  { name: "theme-sky-blue", label: "Sky Blue", colors: { background: "200 100% 95%", foreground: "210 30% 20%", primary: "210 70% 60%", secondary: "220 80% 92%", accent: "180 60% 75%", border: "210 40% 80%", input: "210 40% 88%", ring: "210 70% 50%" }},
-  { name: "theme-mint-green", label: "Mint Green", colors: { background: "150 100% 96%", foreground: "160 30% 15%", primary: "160 65% 55%", secondary: "140 70% 93%", accent: "100 50% 70%", border: "150 35% 82%", input: "150 35% 90%", ring: "160 65% 45%" }},
-  { name: "theme-coral", label: "Coral", colors: { background: "10 100% 96%", foreground: "5 40% 20%", primary: "0 80% 70%", secondary: "20 90% 93%", accent: "30 70% 75%", border: "10 50% 85%", input: "10 50% 90%", ring: "0 80% 60%" }},
-  { name: "theme-peach", label: "Peach", colors: { background: "30 100% 96%", foreground: "25 40% 20%", primary: "35 90% 70%", secondary: "40 100% 94%", accent: "20 80% 80%", border: "30 55% 86%", input: "30 55% 91%", ring: "35 90% 60%" }},
-  { name: "theme-cream", label: "Cream", colors: { background: "45 100% 97%", foreground: "40 25% 20%", primary: "45 80% 75%", secondary: "50 90% 95%", accent: "35 60% 85%", border: "45 50% 88%", input: "45 50% 93%", ring: "45 80% 65%" }},
-];
+// HSL values for the dark variant of the default theme
+const darkThemeColors = {
+  background: "240 10% 10%",
+  foreground: "0 0% 98%",
+  card: "240 10% 12%",
+  cardForeground: "0 0% 98%",
+  popover: "240 10% 12%",
+  popoverForeground: "0 0% 98%",
+  primary: "250 50% 55%",
+  primaryForeground: "0 0% 98%",
+  secondary: "200 50% 30%",
+  secondaryForeground: "0 0% 98%",
+  muted: "240 5% 20%",
+  mutedForeground: "0 0% 63.9%",
+  accent: "150 40% 40%",
+  accentForeground: "0 0% 98%",
+  destructive: "0 62.8% 30.6%",
+  destructiveForeground: "0 0% 98%",
+  border: "240 5% 25%",
+  input: "240 5% 22%",
+  ring: "250 50% 65%",
+};
+
 
 interface RecentRecording {
   id: string;
@@ -71,7 +97,6 @@ export default function HomePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState("default");
   const [recentRecordings, setRecentRecordings] = useState<RecentRecording[]>([]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
@@ -89,22 +114,63 @@ export default function HomePage() {
     },
   });
 
+  const applySystemTheme = (isDark: boolean) => {
+    const colors = isDark ? darkThemeColors : lightThemeColors;
+    const root = document.documentElement;
+  
+    Object.entries(colors).forEach(([key, value]) => {
+      // Convert camelCase to kebab-case for CSS variable names
+      const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      root.style.setProperty(cssVarName, value); // Set as HSL string directly
+    });
+    
+    // Ensure sidebar variables are also set, primarily handled by globals.css inheritance
+    // but this ensures direct application if needed.
+    // For instance, if sidebar specific colors were different beyond just var(--background)
+    const sidebarColors = isDark ? 
+      { sidebarBackground: darkThemeColors.background, sidebarForeground: darkThemeColors.foreground, sidebarPrimary: darkThemeColors.primary, sidebarAccent: darkThemeColors.accent, sidebarBorder: darkThemeColors.border } :
+      { sidebarBackground: lightThemeColors.background, sidebarForeground: lightThemeColors.foreground, sidebarPrimary: lightThemeColors.primary, sidebarAccent: lightThemeColors.accent, sidebarBorder: lightThemeColors.border };
+
+    Object.entries(sidebarColors).forEach(([key, value]) => {
+        const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+        root.style.setProperty(cssVarName, `hsl(${value})`);
+    });
+
+
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    // localStorage.setItem('dualcast-dark-mode', String(isDark)); // Managed by toggleDarkMode and initial load
+  };
+
   useEffect(() => {
     setIsMounted(true);
-    const storedTheme = localStorage.getItem('dualcast-theme') || 'default';
-    const storedDarkMode = localStorage.getItem('dualcast-dark-mode') === 'true';
-    setCurrentTheme(storedTheme);
-    setIsDarkMode(storedDarkMode);
     
-    const themeConfig = themes.find(t => t.name === storedTheme);
-    if (themeConfig) {
-      applyTheme(themeConfig.name, themeConfig.colors);
-    }
-    if (storedDarkMode) {
-      document.documentElement.classList.add('dark');
+    const prefersDarkModeMatcher = window.matchMedia('(prefers-color-scheme: dark)');
+    const storedUserPreference = localStorage.getItem('dualcast-dark-mode');
+
+    let initialIsDark;
+    if (storedUserPreference !== null) {
+      initialIsDark = storedUserPreference === 'true';
     } else {
-      document.documentElement.classList.remove('dark');
+      initialIsDark = prefersDarkModeMatcher.matches;
     }
+    
+    setIsDarkMode(initialIsDark);
+    applySystemTheme(initialIsDark);
+
+    const systemThemeChangeHandler = (e: MediaQueryListEvent) => {
+      // Only update if no manual override is stored
+      if (localStorage.getItem('dualcast-dark-mode') === null) {
+        const newIsDark = e.matches;
+        setIsDarkMode(newIsDark);
+        applySystemTheme(newIsDark);
+      }
+    };
+
+    prefersDarkModeMatcher.addEventListener('change', systemThemeChangeHandler);
 
     // Load mock recent recordings
     setRecentRecordings([
@@ -112,6 +178,10 @@ export default function HomePage() {
       { id: 'rec2', name: 'Gameplay Highlights.mp4', timestamp: new Date(Date.now() - 7200000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=2', duration: "15:10" },
       { id: 'rec3', name: 'Meeting Record.mp4', timestamp: new Date(Date.now() - 10800000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=3', duration: "45:50" },
     ]);
+    
+    return () => {
+      prefersDarkModeMatcher.removeEventListener('change', systemThemeChangeHandler);
+    };
 
   }, []);
 
@@ -197,33 +267,13 @@ export default function HomePage() {
     setRecordingTime(0);
   };
 
-  const applyTheme = (themeName: string, colors: ThemeColors) => {
-    document.documentElement.classList.remove(...themes.map(t => t.name));
-    if (themeName !== 'default') {
-       document.documentElement.classList.add(themeName);
-    }
-   
-    Object.entries(colors).forEach(([variable, value]) => {
-      document.documentElement.style.setProperty(`--${variable}`, `hsl(${value})`);
-    });
-    setCurrentTheme(themeName);
-    localStorage.setItem('dualcast-theme', themeName);
-  };
-
   const toggleDarkMode = () => {
     const newDarkModeState = !isDarkMode;
     setIsDarkMode(newDarkModeState);
-    document.documentElement.classList.toggle('dark', newDarkModeState);
+    applySystemTheme(newDarkModeState); 
     localStorage.setItem('dualcast-dark-mode', String(newDarkModeState));
   };
   
-  const handleThemeChange = (themeName: string) => {
-    const themeConfig = themes.find(t => t.name === themeName);
-    if (themeConfig) {
-      applyTheme(themeConfig.name, themeConfig.colors);
-    }
-  };
-
   const deleteRecording = (id: string) => {
     setRecentRecordings(prev => prev.filter(rec => rec.id !== id));
     toast({
@@ -240,18 +290,15 @@ export default function HomePage() {
     if (type === 'lan') return <Link2 className="mr-2 h-5 w-5" />;
     return <RadioTower className="mr-2 h-5 w-5" />;
   };
-
-  const currentThemeColors = useMemo(() => {
-    const theme = themes.find(t => t.name === currentTheme);
-    return theme ? theme.colors : themes[0].colors;
-  }, [currentTheme]);
   
   if (!isMounted) {
-    return null; // Avoid rendering until client-side hydration is complete
+    // Render nothing or a loading indicator until hydration is complete to avoid mismatches
+    return null; 
   }
 
   return (
-    <div className={cn("flex flex-col min-h-screen bg-background transition-colors duration-300", isDarkMode ? "dark" : "")}>
+    // The 'dark' class will be managed by the applySystemTheme function
+    <div className={cn("flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300")}>
       <AppHeader currentTab={currentTab} setCurrentTab={setCurrentTab} />
       <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -518,7 +565,7 @@ export default function HomePage() {
             <div className="grid gap-8 md:grid-cols-2">
                 <Card className="w-full shadow-xl">
                 <CardHeader>
-                    <CardTitle className="text-2xl font-bold flex items-center"><Palette className="mr-2 text-primary"/>Theme Settings</CardTitle>
+                    <CardTitle className="text-2xl font-bold flex items-center"><Palette className="mr-2 text-primary"/>Appearance</CardTitle>
                     <CardDescription>Customize the app's appearance.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -534,33 +581,9 @@ export default function HomePage() {
                         aria-label="Toggle dark mode"
                     />
                     </div>
-                    <div>
-                        <Label className="text-base mb-2 block">Color Theme</Label>
-                        <ScrollArea className="h-40">
-                             <RadioGroup value={currentTheme} onValueChange={handleThemeChange} className="space-y-2">
-                                {themes.map((theme) => (
-                                <Label
-                                    key={theme.name}
-                                    htmlFor={theme.name}
-                                    className={cn(
-                                    "flex items-center justify-between p-3 rounded-md border cursor-pointer transition-all",
-                                    currentTheme === theme.name ? "border-primary ring-2 ring-primary shadow-md" : "border-border hover:border-primary/50"
-                                    )}
-                                >
-                                    <div className="flex items-center">
-                                        <RadioGroupItem value={theme.name} id={theme.name} className="sr-only" />
-                                        <span className="text-sm font-medium">{theme.label}</span>
-                                    </div>
-                                    <div className="flex space-x-1">
-                                        {Object.values(theme.colors).slice(0, 5).map((color, idx) => (
-                                            <div key={idx} className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${color})`}} />
-                                        ))}
-                                    </div>
-                                </Label>
-                                ))}
-                            </RadioGroup>
-                        </ScrollArea>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        The app will automatically adapt to your system's light or dark mode. You can override this preference here.
+                    </p>
                 </CardContent>
                 </Card>
 
@@ -618,4 +641,3 @@ export default function HomePage() {
     </div>
   );
 }
-
