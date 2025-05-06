@@ -1,7 +1,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, MonitorSmartphone, Settings, RadioTower, Video } from "lucide-react";
 import type { Dispatch, SetStateAction } from 'react';
 
@@ -94,7 +94,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                         opacity="0.7"
                         />
                     </svg>
-                    <h2 className="text-xl font-bold">DualCast Menu</h2>
+                    <SheetTitle className="text-xl font-bold">DualCast Menu</SheetTitle>
                 </div>
                 <nav className="grid gap-3">
                   {navItems.map((item) => (
