@@ -27,6 +27,10 @@ import {
 } from "@/components/ui/form";
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "next-themes";
+import ModeToggle from '@/components/ModeToggle';
+
 
 const formSchema = z.object({
   connectionType: z.string().min(1, "Please select a connection type."),
@@ -94,17 +98,17 @@ const getActivityAccentHsl = (activityStatus: ActivityStatus, isDarkMode: boolea
 
 const calculateThemeSettings = (
   hour: number,
-  isDarkMode: boolean,
+  isSystemDark: boolean,
   preference: ThemePreference
 ): ThemeHslColors => {
   const lightThemePrimaryFg = "240 10% 3.9%";
   const darkThemePrimaryFg = "0 0% 98%";
 
   if (preference === 'daylight') {
-    return isDarkMode ? staticThemes.daylight.dark : staticThemes.daylight.light;
+    return isSystemDark ? staticThemes.daylight.dark : staticThemes.daylight.light;
   }
   if (preference === 'night') {
-    return isDarkMode ? staticThemes.night.dark : staticThemes.night.light;
+    return isSystemDark ? staticThemes.night.dark : staticThemes.night.light;
   }
   // Dynamic theme
   const slot = timeSlots.find(s => hour >= s.startHour && hour < s.endHour);
@@ -112,14 +116,14 @@ const calculateThemeSettings = (
   const fallbackDarkColors = { primary: "250 50% 55%", primaryForeground: darkThemePrimaryFg, ring: "250 50% 65%" };
 
   if (slot) {
-    const colors = isDarkMode ? slot.dark : slot.light;
+    const colors = isSystemDark ? slot.dark : slot.light;
     return {
       primary: colors.primary,
-      primaryForeground: isDarkMode ? darkThemePrimaryFg : lightThemePrimaryFg,
+      primaryForeground: isSystemDark ? darkThemePrimaryFg : lightThemePrimaryFg,
       ring: colors.ring,
     };
   }
-  return isDarkMode ? fallbackDarkColors : fallbackLightColors;
+  return isSystemDark ? fallbackDarkColors : fallbackLightColors;
 };
 
 
@@ -130,12 +134,15 @@ export default function HomePage() {
   const [isRecording, setIsRecording] = useState(false);
   const [activityStatus, setActivityStatus] = useState<ActivityStatus>('idle');
   const [themePreference, setThemePreference] = useState<ThemePreference>('dynamic');
-  const [isSystemDarkMode, setIsSystemDarkMode] = useState(false);
   
   const [recentRecordings, setRecentRecordings] = useState<RecentRecording[]>([]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const isMobile = useIsMobile(true); 
+  const { theme, setTheme, systemTheme } = useTheme();
+
+  const isSystemDarkMode = theme === "system" ? systemTheme === "dark" : theme === "dark";
+
 
   const { toast } = useToast();
 
@@ -151,12 +158,14 @@ export default function HomePage() {
   });
 
   const updateThemeVariables = useCallback(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isMounted) return;
     const currentHour = new Date().getHours();
     const root = document.documentElement;
     
+    const currentIsSystemDark = theme === "system" ? systemTheme === "dark" : theme === "dark";
+
     // Determine primary colors based on preference and time
-    const primaryColors = calculateThemeSettings(currentHour, isSystemDarkMode, themePreference);
+    const primaryColors = calculateThemeSettings(currentHour, currentIsSystemDark, themePreference);
     root.style.setProperty('--primary-hsl-dynamic', primaryColors.primary);
     root.style.setProperty('--primary-foreground-hsl-dynamic', primaryColors.primaryForeground);
     root.style.setProperty('--ring-hsl-dynamic', primaryColors.ring);
@@ -167,11 +176,11 @@ export default function HomePage() {
     root.style.setProperty('--sidebar-ring-hsl-dynamic', primaryColors.ring);
 
     // Determine activity accent colors
-    const activityColors = getActivityAccentHsl(activityStatus, isSystemDarkMode);
+    const activityColors = getActivityAccentHsl(activityStatus, currentIsSystemDark);
     root.style.setProperty('--activity-accent-hsl', activityColors.activityAccent);
     root.style.setProperty('--activity-accent-foreground-hsl', activityColors.activityAccentForeground);
 
-  }, [isSystemDarkMode, themePreference, activityStatus]);
+  }, [theme, systemTheme, themePreference, activityStatus, isMounted]);
 
 
   useEffect(() => {
@@ -180,58 +189,37 @@ export default function HomePage() {
     const storedThemePreference = localStorage.getItem('themePreference') as ThemePreference | null;
     if (storedThemePreference && ['dynamic', 'daylight', 'night'].includes(storedThemePreference)) {
       setThemePreference(storedThemePreference);
-    }
-
-    const prefersDarkModeMatcher = window.matchMedia('(prefers-color-scheme: dark)');
-    const initialIsDark = prefersDarkModeMatcher.matches;
-    
-    setIsSystemDarkMode(initialIsDark);
-    if (initialIsDark) {
-      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      // Default to dynamic if nothing stored or invalid
+      setThemePreference('dynamic'); 
     }
-    updateThemeVariables(); // Initial theme update
+  }, []);
 
-    const systemThemeChangeHandler = (e: MediaQueryListEvent) => {
-      const newIsDark = e.matches;
-      setIsSystemDarkMode(newIsDark);
-      if (newIsDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      // updateThemeVariables will be called by its own useEffect dependency on isSystemDarkMode
-    };
+  useEffect(() => {
+    if (isMounted) {
+      updateThemeVariables();
+    }
+  }, [isMounted, updateThemeVariables]);
 
-    prefersDarkModeMatcher.addEventListener('change', systemThemeChangeHandler);
 
-    setRecentRecordings([
-      { id: 'rec1', name: 'Product Demo.mp4', timestamp: new Date(Date.now() - 3600000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=1', duration: "05:32", "data-ai-hint": "product demo" },
-      { id: 'rec2', name: 'Gameplay Highlights.mp4', timestamp: new Date(Date.now() - 7200000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=2', duration: "15:10", "data-ai-hint": "gaming highlights" },
-      { id: 'rec3', name: 'Meeting Record.mp4', timestamp: new Date(Date.now() - 10800000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=3', duration: "45:50", "data-ai-hint": "meeting recording" },
-    ]);
+  useEffect(() => {
+    if(isMounted) {
+      localStorage.setItem('themePreference', themePreference);
+      updateThemeVariables(); // Update when preference changes
+    }
+  }, [themePreference, isMounted, updateThemeVariables]);
+
+  // Effect for time-based dynamic theme updates
+  useEffect(() => {
+    if (!isMounted || themePreference !== 'dynamic') return;
 
     const timeCheckInterval = setInterval(() => {
-      // updateThemeVariables will be called if themePreference is 'dynamic'
-      if (themePreference === 'dynamic') {
-        updateThemeVariables();
-      }
-    }, 60 * 1000); 
-    
-    return () => {
-      prefersDarkModeMatcher.removeEventListener('change', systemThemeChangeHandler);
-      clearInterval(timeCheckInterval);
-    };
-  }, []); // Empty dependency array for one-time setup
+      updateThemeVariables();
+    }, 60 * 1000); // Check every minute
 
-  useEffect(() => {
-    updateThemeVariables();
-  }, [updateThemeVariables]); // Re-run when themePreference, isSystemDarkMode, or activityStatus changes
+    return () => clearInterval(timeCheckInterval);
+  }, [isMounted, themePreference, updateThemeVariables]);
 
-  useEffect(() => {
-    localStorage.setItem('themePreference', themePreference);
-  }, [themePreference]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -241,13 +229,22 @@ export default function HomePage() {
         setRecordingTime(prevTime => prevTime + 1);
       }, 1000);
     } else {
-      // If not recording, status could be playback or idle
-      // This simple logic sets to idle, could be more complex if playback state is robustly managed
       if (activityStatus === 'recording') setActivityStatus('idle'); 
       setRecordingTime(0);
     }
     return () => clearInterval(timer);
   }, [isRecording, activityStatus]);
+
+  // Initial recordings load
+    useEffect(() => {
+        if(isMounted) {
+            setRecentRecordings([
+            { id: 'rec1', name: 'Product Demo.mp4', timestamp: new Date(Date.now() - 3600000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=1', duration: "05:32", "data-ai-hint": "product demo" },
+            { id: 'rec2', name: 'Gameplay Highlights.mp4', timestamp: new Date(Date.now() - 7200000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=2', duration: "15:10", "data-ai-hint": "gaming highlights" },
+            { id: 'rec3', name: 'Meeting Record.mp4', timestamp: new Date(Date.now() - 10800000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=3', duration: "45:50", "data-ai-hint": "meeting recording" },
+            ]);
+        }
+    }, [isMounted]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -258,7 +255,7 @@ export default function HomePage() {
 
   const handleConnect = (values: z.infer<typeof formSchema>) => {
     setIsConnecting(true);
-    setActivityStatus('idle'); // Reset activity on new connection attempt
+    setActivityStatus('idle'); 
     console.log("Attempting to connect with:", values);
     setTimeout(() => {
       setIsConnecting(false);
@@ -286,7 +283,6 @@ export default function HomePage() {
 
   const handleStartRecording = () => {
     setIsRecording(true);
-    // setActivityStatus('recording'); // This is handled by useEffect on isRecording
     const now = new Date();
     const newRecording: RecentRecording = {
       id: `rec_${now.getTime()}`,
@@ -306,7 +302,6 @@ export default function HomePage() {
 
   const handleStopRecording = () => {
     setIsRecording(false);
-    // setActivityStatus('idle'); // Handled by useEffect
     setRecentRecordings(prev => {
       const updatedRecordings = [...prev];
       if (updatedRecordings.length > 0) {
@@ -338,9 +333,9 @@ export default function HomePage() {
         description: `Playing ${recName} (simulated).`,
         action: <PlayCircle className="text-primary" />
     });
-    // Simulate playback ending after a few seconds
     setTimeout(() => {
-        if(activityStatus === 'playback') { // Only revert if still in playback
+        // Check activityStatus before setting to idle, in case another action (like starting a new recording) has changed it.
+        if(activityStatus === 'playback') { 
           setActivityStatus('idle');
           toast({
             title: "Playback Ended",
@@ -359,16 +354,17 @@ export default function HomePage() {
   };
   
   if (!isMounted) {
-    return <div className="flex flex-col min-h-screen bg-background text-foreground items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; 
+    // Simplified loading state for initial mount to avoid hydration issues with theme
+    return <div className="flex flex-col min-h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin" /></div>; 
   }
 
   return (
     <div className={cn("flex flex-col min-h-screen bg-background text-foreground")}>
       <AppHeader currentTab={currentTab} setCurrentTab={setCurrentTab} />
       <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-          {isMobile && ( /* Show tabs on mobile only */
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full max-w-3xl">
+          {(isMobile || !isConnected || (!isMobile && isConnected)) && ( // Show tabs if mobile OR not connected OR (not mobile AND connected)
+            <TabsList className={cn("grid w-full mb-8", isMobile ? "grid-cols-2 md:grid-cols-4" : "grid-cols-4")}>
               <TabsTrigger value="connection"><RadioTower className="mr-1 md:mr-2 h-4 w-4 text-primary" />Connect</TabsTrigger>
               <TabsTrigger value="control" disabled={!isConnected}><MonitorSmartphone className="mr-1 md:mr-2 h-4 w-4 text-primary" />Control</TabsTrigger>
               <TabsTrigger value="display" disabled={!isConnected}><Video className="mr-1 md:mr-2 h-4 w-4 text-primary" />Display</TabsTrigger>
@@ -376,8 +372,9 @@ export default function HomePage() {
             </TabsList>
           )}
 
+
           <TabsContent value="connection">
-            <Card className={cn("w-full max-w-2xl", activityStatus !== 'idle' && 'activity-border')}>
+            <Card className={cn("w-full", activityStatus !== 'idle' && 'activity-border')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold">Connect Devices</CardTitle>
                 <CardDescription>
@@ -467,7 +464,7 @@ export default function HomePage() {
                     <Separator className="my-4" />
                     <div className="text-center">
                         <p className="text-muted-foreground mb-2">Or scan QR code from other device:</p>
-                        <Button variant="outline" type="button" className="w-full" onClick={() => alert("QR Scan: Feature coming soon!")}>
+                        <Button variant="outline" type="button" className="w-full" onClick={() => toast({title: "QR Scan: Feature coming soon!", description:"This functionality will be available in a future update."})}>
                             <ScanLine className="mr-2 h-5 w-5 text-primary" /> Scan QR Code
                         </Button>
                     </div>
@@ -479,7 +476,7 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="control">
-            <Card className={cn("w-full max-w-2xl", activityStatus !== 'idle' && 'activity-border')}>
+            <Card className={cn("w-full", activityStatus !== 'idle' && 'activity-border')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold">Remote Control</CardTitle>
                 <CardDescription>Manage recording settings and actions.</CardDescription>
@@ -569,7 +566,7 @@ export default function HomePage() {
 
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
                       {!isRecording ? (
-                        <Button onClick={handleStartRecording} size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white">
+                        <Button onClick={handleStartRecording} size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white dark:text-white">
                           <PlayCircle className="mr-2 h-5 w-5" /> Start Recording
                         </Button>
                       ) : (
@@ -593,7 +590,7 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="display">
-            <Card className={cn("w-full max-w-3xl", activityStatus !== 'idle' && 'activity-border')}>
+            <Card className={cn("w-full", activityStatus !== 'idle' && 'activity-border')}>
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold">Live Display</CardTitle>
                 <CardDescription>Real-time view from the connected device.</CardDescription>
@@ -673,7 +670,7 @@ export default function HomePage() {
                         )}
                     </CardContent>
                     <CardFooter className="flex justify-end">
-                         <Button variant="outline" onClick={() => alert("View all recordings: Feature coming soon!")} disabled={recentRecordings.length === 0}>
+                         <Button variant="outline" onClick={() => toast({title: "View All: Feature coming soon!", description:"This functionality will be available in a future update."})} disabled={recentRecordings.length === 0}>
                             View All
                         </Button>
                     </CardFooter>
@@ -682,33 +679,46 @@ export default function HomePage() {
                 <Card className={cn("w-full", activityStatus !== 'idle' && 'activity-border')}>
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold flex items-center"><Palette className="mr-2 text-primary"/>Theme Preferences</CardTitle>
-                        <CardDescription>Customize the app's appearance.</CardDescription>
+                        <CardDescription>Customize the app&apos;s appearance. System preference will be used by default.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <RadioGroup
-                        value={themePreference}
-                        onValueChange={(value: string) => setThemePreference(value as ThemePreference)}
-                        className="space-y-2"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                                <RadioGroupItem value="dynamic" id="dynamic-theme"/>
-                            </FormControl>
-                            <Label htmlFor="dynamic-theme" className="font-normal">Dynamic (Time-based)</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                                <RadioGroupItem value="daylight" id="daylight-theme"/>
-                            </FormControl>
-                            <Label htmlFor="daylight-theme" className="font-normal">Soft Daylight (Static)</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                                <RadioGroupItem value="night" id="night-theme"/>
-                            </FormControl>
-                            <Label htmlFor="night-theme" className="font-normal">Soft Night (Static)</Label>
-                        </FormItem>
-                      </RadioGroup>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="theme-mode-toggle" className="text-base">
+                                Theme Mode
+                            </Label>
+                            <ModeToggle />
+                        </div>
+                      <Separator />
+                      <div>
+                        <Label className="text-base">Color Scheme</Label>
+                        <p className="text-sm text-muted-foreground mb-3">
+                            Select a color scheme preference. &quot;Dynamic&quot; changes with the time of day.
+                        </p>
+                        <RadioGroup
+                            value={themePreference}
+                            onValueChange={(value: string) => setThemePreference(value as ThemePreference)}
+                            className="space-y-2"
+                        >
+                            <FormItem className="flex items-center space-x-3">
+                                <FormControl>
+                                     <RadioGroupItem value="dynamic" id="dynamic-theme"/>
+                                </FormControl>
+                               <Label htmlFor="dynamic-theme" className="font-normal">Dynamic (Time-based)</Label>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3">
+                                <FormControl>
+                                     <RadioGroupItem value="daylight" id="daylight-theme"/>
+                                </FormControl>
+                                <Label htmlFor="daylight-theme" className="font-normal">Soft Daylight (Static)</Label>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3">
+                                <FormControl>
+                                     <RadioGroupItem value="night" id="night-theme"/>
+                                </FormControl>
+                               <Label htmlFor="night-theme" className="font-normal">Soft Night (Static)</Label>
+                            </FormItem>
+                        </RadioGroup>
+                      </div>
                     </CardContent>
                 </Card>
             </div>
