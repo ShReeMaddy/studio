@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { RadioTower, Wifi, Bluetooth, Usb, Video, Square, CloudUpload, Download, MonitorSmartphone, Settings, Film, Link2, ScanLine, Loader2, Palette, Moon, Sun, Smartphone, Save, Trash2, PlayCircle, Image as ImageIcon, PauseCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { RadioTower, Wifi, Bluetooth, Usb, Video, Square, CloudUpload, MonitorSmartphone, Settings, Film, Link2, ScanLine, Loader2, Smartphone, Save, Trash2, PlayCircle, Image as ImageIcon, PauseCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 const formSchema = z.object({
   connectionType: z.string().min(1, "Please select a connection type."),
@@ -36,70 +36,64 @@ const formSchema = z.object({
   storagePreference: z.enum(["cloud", "local"]).default("cloud"),
 });
 
-// Base HSL values for the default (Light Lavender) theme
-const lightThemeColors = {
-  background: "255 100% 97%",
-  foreground: "240 10% 3.9%",
-  card: "255 100% 98%",
-  cardForeground: "240 10% 3.9%",
-  popover: "255 100% 98%",
-  popoverForeground: "240 10% 3.9%",
-  primary: "250 60% 65%",
-  primaryForeground: "255 100% 99%",
-  secondary: "200 100% 90%",
-  secondaryForeground: "200 60% 30%",
-  muted: "220 20% 96%",
-  mutedForeground: "220 10% 45%",
-  accent: "150 70% 80%",
-  accentForeground: "150 50% 30%",
-  destructive: "0 84.2% 60.2%",
-  destructiveForeground: "0 0% 98%",
-  border: "250 30% 85%",
-  input: "250 30% 90%",
-  ring: "250 60% 55%",
-};
-
-// HSL values for the dark variant of the default theme
-const darkThemeColors = {
-  background: "240 10% 10%",
-  foreground: "0 0% 98%",
-  card: "240 10% 12%",
-  cardForeground: "0 0% 98%",
-  popover: "240 10% 12%",
-  popoverForeground: "0 0% 98%",
-  primary: "250 50% 55%",
-  primaryForeground: "0 0% 98%",
-  secondary: "200 50% 30%",
-  secondaryForeground: "0 0% 98%",
-  muted: "240 5% 20%",
-  mutedForeground: "0 0% 63.9%",
-  accent: "150 40% 40%",
-  accentForeground: "0 0% 98%",
-  destructive: "0 62.8% 30.6%",
-  destructiveForeground: "0 0% 98%",
-  border: "240 5% 25%",
-  input: "240 5% 22%",
-  ring: "250 50% 65%",
-};
-
-
 interface RecentRecording {
   id: string;
   name: string;
   timestamp: string;
   thumbnailUrl?: string;
   duration: string;
+  "data-ai-hint"?: string;
 }
+
+// Time-based theme configuration for Primary color (replaces Lavender)
+// HSL format: "H S% L%"
+const timeSlots = [
+  // Early Morning (4 AM – 7 AM): Pale Peach #FFE5B4 
+  { startHour: 4, endHour: 7, name: "Early Morning", light: { primary: "39 100% 85%", ring: "39 100% 75%" }, dark: { primary: "39 80% 65%", ring: "39 80% 55%" } },
+  // Morning (7 AM – 11 AM): Sky Blue #A2D2FF 
+  { startHour: 7, endHour: 11, name: "Morning", light: { primary: "208 100% 82%", ring: "208 100% 72%" }, dark: { primary: "208 70% 60%", ring: "208 70% 50%" } },
+  // Afternoon (11 AM – 4 PM): Mint Green #B9FBC0
+  { startHour: 11, endHour: 16, name: "Afternoon", light: { primary: "125 88% 85%", ring: "125 88% 75%" }, dark: { primary: "125 60% 65%", ring: "125 60% 55%" } },
+  // Evening (4 PM – 7 PM): Coral Pink #FFADAD 
+  { startHour: 16, endHour: 19, name: "Evening", light: { primary: "0 100% 84%", ring: "0 100% 74%" }, dark: { primary: "0 80% 65%", ring: "0 80% 55%" } },
+  // Night (7 PM – 10 PM): Soft Lilac #D7BCE8 
+  { startHour: 19, endHour: 22, name: "Night", light: { primary: "273 47% 82%", ring: "273 47% 72%" }, dark: { primary: "273 35% 60%", ring: "273 35% 50%" } },
+  // Late Night (10 PM – 4 AM): Dusty Rose #E8C1C5 
+  { startHour: 22, endHour: 24, name: "Late Night", light: { primary: "353 48% 83%", ring: "353 48% 73%" }, dark: { primary: "353 35% 60%", ring: "353 35% 50%" } }, // Before midnight
+  { startHour: 0, endHour: 4, name: "Late Night", light: { primary: "353 48% 83%", ring: "353 48% 73%" }, dark: { primary: "353 35% 60%", ring: "353 35% 50%" } },   // After midnight
+];
+
+const getDynamicPrimaryColors = (hour: number, isDarkMode: boolean): { primary: string; primaryForeground: string; ring: string } => {
+  const slot = timeSlots.find(s => hour >= s.startHour && hour < s.endHour);
+  
+  const lightThemePrimaryFg = "240 10% 3.9%"; // Dark Gray (for light pastel backgrounds)
+  const darkThemePrimaryFg = "0 0% 98%";    // Off-white (for dark pastel backgrounds)
+
+  const fallbackLightColors = { primary: "250 60% 65%", primaryForeground: lightThemePrimaryFg, ring: "250 60% 55%" }; // Lavender
+  const fallbackDarkColors = { primary: "250 50% 55%", primaryForeground: darkThemePrimaryFg, ring: "250 50% 65%" }; // Darker Lavender
+
+  if (slot) {
+    const colors = isDarkMode ? slot.dark : slot.light;
+    return { 
+      primary: colors.primary, 
+      primaryForeground: isDarkMode ? darkThemePrimaryFg : lightThemePrimaryFg,
+      ring: colors.ring 
+    };
+  }
+  return isDarkMode ? fallbackDarkColors : fallbackLightColors;
+};
+
 
 export default function HomePage() {
   const [currentTab, setCurrentTab] = useState("connection");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkModeState, setIsDarkModeState] = useState(false); // Local state to track dark mode
   const [recentRecordings, setRecentRecordings] = useState<RecentRecording[]>([]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const isMobile = useIsMobile(true); // Default to true to avoid layout shifts, will be updated on mount
 
   const { toast } = useToast();
 
@@ -114,76 +108,69 @@ export default function HomePage() {
     },
   });
 
-  const applySystemTheme = (isDark: boolean) => {
-    const colors = isDark ? darkThemeColors : lightThemeColors;
-    const root = document.documentElement;
-  
-    Object.entries(colors).forEach(([key, value]) => {
-      // Convert camelCase to kebab-case for CSS variable names
-      const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-      root.style.setProperty(cssVarName, value); // Set as HSL string directly
-    });
+  const applyDynamicTheme = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const currentHour = new Date().getHours();
+    // Read dark mode status directly from HTML class for immediate reflection
+    const currentIsDarkMode = document.documentElement.classList.contains('dark');
     
-    // Ensure sidebar variables are also set, primarily handled by globals.css inheritance
-    // but this ensures direct application if needed.
-    // For instance, if sidebar specific colors were different beyond just var(--background)
-    const sidebarColors = isDark ? 
-      { sidebarBackground: darkThemeColors.background, sidebarForeground: darkThemeColors.foreground, sidebarPrimary: darkThemeColors.primary, sidebarAccent: darkThemeColors.accent, sidebarBorder: darkThemeColors.border } :
-      { sidebarBackground: lightThemeColors.background, sidebarForeground: lightThemeColors.foreground, sidebarPrimary: lightThemeColors.primary, sidebarAccent: lightThemeColors.accent, sidebarBorder: lightThemeColors.border };
+    const dynamicColors = getDynamicPrimaryColors(currentHour, currentIsDarkMode);
+    
+    const root = document.documentElement;
+    root.style.setProperty('--primary-dynamic', dynamicColors.primary);
+    root.style.setProperty('--primary-foreground-dynamic', dynamicColors.primaryForeground);
+    root.style.setProperty('--ring-dynamic', dynamicColors.ring);
 
-    Object.entries(sidebarColors).forEach(([key, value]) => {
-        const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-        root.style.setProperty(cssVarName, `hsl(${value})`);
-    });
+    // Apply to sidebar variables as well to ensure consistency
+    root.style.setProperty('--sidebar-primary-dynamic', dynamicColors.primary);
+    root.style.setProperty('--sidebar-primary-foreground-dynamic', dynamicColors.primaryForeground);
+    root.style.setProperty('--sidebar-ring-dynamic', dynamicColors.ring);
+  }, []);
 
-
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    // localStorage.setItem('dualcast-dark-mode', String(isDark)); // Managed by toggleDarkMode and initial load
-  };
 
   useEffect(() => {
     setIsMounted(true);
     
     const prefersDarkModeMatcher = window.matchMedia('(prefers-color-scheme: dark)');
-    const storedUserPreference = localStorage.getItem('dualcast-dark-mode');
-
-    let initialIsDark;
-    if (storedUserPreference !== null) {
-      initialIsDark = storedUserPreference === 'true';
-    } else {
-      initialIsDark = prefersDarkModeMatcher.matches;
-    }
+    const initialIsDark = prefersDarkModeMatcher.matches;
     
-    setIsDarkMode(initialIsDark);
-    applySystemTheme(initialIsDark);
+    setIsDarkModeState(initialIsDark); // Update local state
+    if (initialIsDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    applyDynamicTheme();
 
     const systemThemeChangeHandler = (e: MediaQueryListEvent) => {
-      // Only update if no manual override is stored
-      if (localStorage.getItem('dualcast-dark-mode') === null) {
-        const newIsDark = e.matches;
-        setIsDarkMode(newIsDark);
-        applySystemTheme(newIsDark);
+      const newIsDark = e.matches;
+      setIsDarkModeState(newIsDark); // Update local state
+      if (newIsDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
+      applyDynamicTheme();
     };
 
     prefersDarkModeMatcher.addEventListener('change', systemThemeChangeHandler);
 
-    // Load mock recent recordings
     setRecentRecordings([
-      { id: 'rec1', name: 'Product Demo.mp4', timestamp: new Date(Date.now() - 3600000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=1', duration: "05:32" },
-      { id: 'rec2', name: 'Gameplay Highlights.mp4', timestamp: new Date(Date.now() - 7200000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=2', duration: "15:10" },
-      { id: 'rec3', name: 'Meeting Record.mp4', timestamp: new Date(Date.now() - 10800000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=3', duration: "45:50" },
+      { id: 'rec1', name: 'Product Demo.mp4', timestamp: new Date(Date.now() - 3600000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=1', duration: "05:32", "data-ai-hint": "product demo" },
+      { id: 'rec2', name: 'Gameplay Highlights.mp4', timestamp: new Date(Date.now() - 7200000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=2', duration: "15:10", "data-ai-hint": "gaming highlights" },
+      { id: 'rec3', name: 'Meeting Record.mp4', timestamp: new Date(Date.now() - 10800000).toLocaleString(), thumbnailUrl: 'https://picsum.photos/120/80?random=3', duration: "45:50", "data-ai-hint": "meeting recording" },
     ]);
+
+    const timeCheckInterval = setInterval(() => {
+      applyDynamicTheme();
+    }, 60 * 1000); 
     
     return () => {
       prefersDarkModeMatcher.removeEventListener('change', systemThemeChangeHandler);
+      clearInterval(timeCheckInterval);
     };
 
-  }, []);
+  }, [applyDynamicTheme]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -207,7 +194,6 @@ export default function HomePage() {
   const handleConnect = (values: z.infer<typeof formSchema>) => {
     setIsConnecting(true);
     console.log("Attempting to connect with:", values);
-    // Simulate connection attempt
     setTimeout(() => {
       setIsConnecting(false);
       setIsConnected(true);
@@ -239,7 +225,8 @@ export default function HomePage() {
       name: `Recording_${now.toISOString().replace(/[:.]/g, '-')}.mp4`,
       timestamp: now.toLocaleString(),
       thumbnailUrl: `https://picsum.photos/120/80?random=${Math.floor(Math.random() * 100)}`,
-      duration: "00:00" // Placeholder, will update on stop
+      duration: "00:00",
+      "data-ai-hint": "new recording"
     };
     setRecentRecordings(prev => [newRecording, ...prev.slice(0,4)]);
     toast({
@@ -251,7 +238,6 @@ export default function HomePage() {
 
   const handleStopRecording = () => {
     setIsRecording(false);
-    // Update the duration of the last recording
     setRecentRecordings(prev => {
       const updatedRecordings = [...prev];
       if (updatedRecordings.length > 0) {
@@ -265,13 +251,6 @@ export default function HomePage() {
       action: <Save className="text-primary" />
     });
     setRecordingTime(0);
-  };
-
-  const toggleDarkMode = () => {
-    const newDarkModeState = !isDarkMode;
-    setIsDarkMode(newDarkModeState);
-    applySystemTheme(newDarkModeState); 
-    localStorage.setItem('dualcast-dark-mode', String(newDarkModeState));
   };
   
   const deleteRecording = (id: string) => {
@@ -292,22 +271,22 @@ export default function HomePage() {
   };
   
   if (!isMounted) {
-    // Render nothing or a loading indicator until hydration is complete to avoid mismatches
-    return null; 
+    return <div className="flex flex-col min-h-screen bg-background text-foreground items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>; 
   }
 
   return (
-    // The 'dark' class will be managed by the applySystemTheme function
-    <div className={cn("flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300")}>
+    <div className={cn("flex flex-col min-h-screen bg-background text-foreground")}>
       <AppHeader currentTab={currentTab} setCurrentTab={setCurrentTab} />
       <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
-            <TabsTrigger value="connection"><RadioTower className="mr-1 md:mr-2 h-4 w-4" />Connect</TabsTrigger>
-            <TabsTrigger value="control" disabled={!isConnected}><MonitorSmartphone className="mr-1 md:mr-2 h-4 w-4" />Control</TabsTrigger>
-            <TabsTrigger value="display" disabled={!isConnected}><Video className="mr-1 md:mr-2 h-4 w-4" />Display</TabsTrigger>
-            <TabsTrigger value="settings"><Settings className="mr-1 md:mr-2 h-4 w-4" />Settings</TabsTrigger>
-          </TabsList>
+          {isMobile && (
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8">
+              <TabsTrigger value="connection"><RadioTower className="mr-1 md:mr-2 h-4 w-4" />Connect</TabsTrigger>
+              <TabsTrigger value="control" disabled={!isConnected}><MonitorSmartphone className="mr-1 md:mr-2 h-4 w-4" />Control</TabsTrigger>
+              <TabsTrigger value="display" disabled={!isConnected}><Video className="mr-1 md:mr-2 h-4 w-4" />Display</TabsTrigger>
+              <TabsTrigger value="settings"><Settings className="mr-1 md:mr-2 h-4 w-4" />Settings</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="connection">
             <Card className="w-full max-w-2xl shadow-xl">
@@ -545,12 +524,10 @@ export default function HomePage() {
                         <p className="text-muted-foreground">Connect a device to see the live display.</p>
                     </div>
                   )}
-                  {/* Placeholder image if needed, can be conditional */}
                   {isConnected && !isRecording && <Image src="https://picsum.photos/seed/dualcastdisplay/1280/720" data-ai-hint="screen content" alt="Device Screen" layout="fill" objectFit="cover" className="opacity-70" /> }
                 </div>
                  <div className="mt-6 flex justify-center gap-4">
                     <Button variant="outline" disabled={!isConnected || isRecording} onClick={() => toast({title: "Snapshot Taken!", description: "Screenshot saved (simulated)."})}><ImageIcon className="mr-2 h-4 w-4"/>Take Snapshot</Button>
-                    {/* Add more display related controls here if needed */}
                 </div>
               </CardContent>
                <CardFooter className="flex justify-end">
@@ -562,31 +539,7 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="grid gap-8 md:grid-cols-2">
-                <Card className="w-full shadow-xl">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-bold flex items-center"><Palette className="mr-2 text-primary"/>Appearance</CardTitle>
-                    <CardDescription>Customize the app's appearance.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                    <Label htmlFor="darkMode" className="flex items-center text-base">
-                        {isDarkMode ? <Moon className="mr-2 h-5 w-5" /> : <Sun className="mr-2 h-5 w-5" />}
-                        Dark Mode
-                    </Label>
-                    <Switch
-                        id="darkMode"
-                        checked={isDarkMode}
-                        onCheckedChange={toggleDarkMode}
-                        aria-label="Toggle dark mode"
-                    />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        The app will automatically adapt to your system's light or dark mode. You can override this preference here.
-                    </p>
-                </CardContent>
-                </Card>
-
+            <div className="grid gap-8 md:grid-cols-1"> 
                  <Card className="w-full shadow-xl">
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold flex items-center"><Film className="mr-2 text-primary"/>Recent Recordings</CardTitle>
@@ -599,7 +552,7 @@ export default function HomePage() {
                             {recentRecordings.map((rec) => (
                                 <li key={rec.id} className="flex items-center justify-between p-3 rounded-md border hover:shadow-md transition-shadow">
                                 <div className="flex items-center space-x-3">
-                                    <Image src={rec.thumbnailUrl || "https://picsum.photos/120/80"} data-ai-hint="video thumbnail" alt={rec.name} width={60} height={40} className="rounded-md object-cover" />
+                                    <Image src={rec.thumbnailUrl || "https://picsum.photos/120/80"} data-ai-hint={rec["data-ai-hint"] || "video thumbnail"} alt={rec.name} width={60} height={40} className="rounded-md object-cover" />
                                     <div>
                                     <p className="font-medium text-sm">{rec.name}</p>
                                     <p className="text-xs text-muted-foreground">{rec.timestamp} &bull; {rec.duration}</p>
