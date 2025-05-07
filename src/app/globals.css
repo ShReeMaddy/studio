@@ -4,29 +4,38 @@
 
 body {
   font-family: 'Inter', sans-serif;
+  @apply touch-pan-y touch-pinch-zoom; /* Optimize touch interactions */
 }
 
 @layer base {
   :root {
     /* Original Pastel Palette & Defaults for Dynamic Primary */
     --background: 255 100% 97%; /* Off-white / Very Light Lavender */
-    --foreground: 240 10% 3.9%; /* Dark Gray */
+    --foreground: 240 10% 3.9%;
     
-    --card: 255 100% 98%; /* Off-white / Very Light Lavender - Base for glassmorphism */
+    --card: 255 100% 98%; 
     --card-foreground: 240 10% 3.9%;
     
     --popover: 255 100% 98%;
     --popover-foreground: 240 10% 3.9%;
     
-    /* Default Primary: Lavender (Light Theme) - Fallback if JS fails or for initial render */
-    --primary-hsl-default: 250 60% 65%;
-    --primary-foreground-hsl-default: 240 10% 3.9%; /* Dark text for light primary pastels */
-    --ring-hsl-default: 250 60% 55%;
+    /* Default Primary (Lavender - Solid) - Fallback if JS fails or for initial render */
+    --primary-hsl-default: 250 60% 75%; /* Brighter Lavender for better contrast */
+    --primary-foreground-hsl-default: 240 10% 3.9%;
+    --ring-hsl-default: 250 60% 65%;
 
+    /* Default Primary Gradient (Lavender based) */
+    --primary-gradient-start-hsl-default: 250 60% 75%;
+    --primary-gradient-end-hsl-default: 250 60% 65%;
+    
     /* Dynamic Primary Colors - JS will set these CSS variables */
     --primary-hsl: var(--primary-hsl-dynamic, var(--primary-hsl-default));
     --primary-foreground-hsl: var(--primary-foreground-hsl-dynamic, var(--primary-foreground-hsl-default));
     --ring-hsl: var(--ring-hsl-dynamic, var(--ring-hsl-default));
+
+    /* Dynamic Primary Gradient Colors */
+    --primary-gradient-start-hsl: var(--primary-gradient-start-hsl-dynamic, var(--primary-gradient-start-hsl-default));
+    --primary-gradient-end-hsl: var(--primary-gradient-end-hsl-dynamic, var(--primary-gradient-end-hsl-default));
     
     /* Converted to HSL actual values for Tailwind to consume */
     --primary: hsl(var(--primary-hsl));
@@ -45,29 +54,34 @@ body {
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     
-    --border: 250 30% 85%; /* Soft Gray / Light Lavender Border */
+    --border: 250 30% 85%; 
     --input: 250 30% 90%;
     
-    --chart-1: 39 100% 85%; /* Pale Peach for charts */
-    --chart-2: 208 100% 82%; /* Sky Blue for charts */
-    --chart-3: 125 88% 85%; /* Mint Green for charts */
-    --chart-4: 0 100% 84%; /* Coral Pink for charts */
-    --chart-5: 273 47% 82%; /* Soft Lilac for charts */
+    --chart-1: 39 100% 85%; 
+    --chart-2: 208 100% 82%;
+    --chart-3: 125 88% 85%;
+    --chart-4: 0 100% 84%;
+    --chart-5: 273 47% 82%;
     --radius: 0.8rem;
 
-    /* Sidebar specific theme variables (will follow main primary for dynamic changes) */
-    --sidebar-background: var(--background); 
-    --sidebar-foreground: var(--foreground);
-    --sidebar-primary-hsl: var(--primary-hsl);
+    /* Sidebar specific theme variables */
+    --sidebar-background-hsl: var(--background); /* Fallback solid background */
+    --sidebar-foreground-hsl: var(--foreground);
+    --sidebar-gradient-start-hsl-default: var(--primary-gradient-start-hsl-default);
+    --sidebar-gradient-end-hsl-default: var(--primary-gradient-end-hsl-default);
+    --sidebar-gradient-start-hsl: var(--sidebar-gradient-start-hsl-dynamic, var(--sidebar-gradient-start-hsl-default));
+    --sidebar-gradient-end-hsl: var(--sidebar-gradient-end-hsl-dynamic, var(--sidebar-gradient-end-hsl-default));
+    
+    --sidebar-primary-hsl: var(--primary-hsl); /* For items within sidebar */
     --sidebar-primary-foreground-hsl: var(--primary-foreground-hsl);
     --sidebar-ring-hsl: var(--ring-hsl);
-    --sidebar-border: var(--border); 
-    --sidebar-accent: var(--accent); 
-    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border-hsl: var(--border); 
+    --sidebar-accent-hsl: var(--accent); 
+    --sidebar-accent-foreground-hsl: var(--accent-foreground);
 
     /* Activity Accent Colors - JS will set these */
-    --activity-accent-hsl: 250 30% 85%; /* Default to border color */
-    --activity-accent-foreground-hsl: 240 10% 3.9%; /* Default to foreground */
+    --activity-accent-hsl: 250 30% 85%; 
+    --activity-accent-foreground-hsl: 240 10% 3.9%;
     --activity-accent: hsl(var(--activity-accent-hsl));
     --activity-accent-foreground: hsl(var(--activity-accent-foreground-hsl));
   }
@@ -76,26 +90,26 @@ body {
     --background: 240 10% 10%;
     --foreground: 0 0% 98%;
     
-    --card: 240 10% 12%; /* Base for glassmorphism */
+    --card: 240 10% 12%;
     --card-foreground: 0 0% 98%;
     
     --popover: 240 10% 12%;
     --popover-foreground: 0 0% 98%;
     
-    /* Default Primary: Lavender (Dark Theme) - Fallback */
-    --primary-hsl-default: 250 50% 55%;
-    --primary-foreground-hsl-default: 0 0% 98%; /* Light text for dark primary pastels */
-    --ring-hsl-default: 250 50% 65%;
+    --primary-hsl-default: 250 50% 65%; /* Brighter Lavender for dark mode */
+    --primary-foreground-hsl-default: 0 0% 98%;
+    --ring-hsl-default: 250 50% 75%;
+
+    --primary-gradient-start-hsl-default: 250 50% 65%;
+    --primary-gradient-end-hsl-default: 250 50% 55%;
     
-    /* --primary-hsl, etc. will use dynamic vars or these defaults */
-    
-    --secondary: 200 50% 30%; /* Darker Sky Blue */
+    --secondary: 200 50% 30%; 
     --secondary-foreground: 0 0% 98%;
     
     --muted: 240 5% 20%;
     --muted-foreground: 0 0% 63.9%;
     
-    --accent: 150 40% 40%; /* Darker Mint Green */
+    --accent: 150 40% 40%; 
     --accent-foreground: 0 0% 98%;
     
     --destructive: 0 62.8% 30.6%;
@@ -104,17 +118,16 @@ body {
     --border: 240 5% 25%;
     --input: 240 5% 22%;
 
-    /* Dark Sidebar specific theme variables */
-    --sidebar-background: var(--background); 
-    --sidebar-foreground: var(--foreground);
-    /* --sidebar-primary-hsl, etc. will use dynamic vars or these defaults */
-    --sidebar-border: var(--border);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-background-hsl: var(--background);
+    --sidebar-foreground-hsl: var(--foreground);
+    --sidebar-gradient-start-hsl-default: var(--primary-gradient-start-hsl-default);
+    --sidebar-gradient-end-hsl-default: var(--primary-gradient-end-hsl-default);
+    --sidebar-border-hsl: var(--border);
+    --sidebar-accent-hsl: var(--accent);
+    --sidebar-accent-foreground-hsl: var(--accent-foreground);
 
-    /* Activity Accent Colors - Dark Mode Defaults */
-    --activity-accent-hsl: 240 5% 25%; /* Default to border color */
-    --activity-accent-foreground-hsl: 0 0% 98%; /* Default to foreground */
+    --activity-accent-hsl: 240 5% 30%; 
+    --activity-accent-foreground-hsl: 0 0% 98%;
   }
 }
 
@@ -124,27 +137,65 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    /* Ensure transitions apply to elements using these CSS variables */
-    transition: background-color 0.5s ease, color 0.5s ease;
+    transition: background-color 0.6s cubic-bezier(0.65, 0, 0.35, 1), color 0.6s cubic-bezier(0.65, 0, 0.35, 1);
   }
   
-  /* Add transition to elements that use primary, accent, or activity accent colors */
+  /* Enhanced transition for elements that use dynamic colors or backgrounds */
   .bg-primary, .text-primary, .border-primary, .ring-primary,
   .bg-primary-foreground, .text-primary-foreground,
-  .bg-sidebar, .text-sidebar-foreground,
+  .bg-sidebar, .text-sidebar-foreground, /* For solid sidebar bg if gradient not used */
+  .sidebar-dynamic-gradient-bg, /* For gradient sidebar bg */
   .bg-sidebar-primary, .text-sidebar-primary, .border-sidebar-primary, .ring-sidebar-primary,
   .bg-accent, .text-accent, .border-accent, .ring-accent,
   .border-activity-accent, .text-activity-accent, .bg-activity-accent,
   .fill-primary, /* for SVG logo */
-  .bg-card /* for card background opacity transition */
+  .bg-card, /* for card background opacity/color transition */
+  .dynamic-gradient-background /* For areas replacing lavender with gradient */
    {
-    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, fill 0.5s ease, backdrop-filter 0.5s ease;
+    transition: background-color 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
+                color 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
+                border-color 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
+                box-shadow 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
+                fill 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
+                background-image 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+                backdrop-filter 0.6s cubic-bezier(0.65, 0, 0.35, 1);
   }
 }
 
-/* Utility class for activity borders */
+/* Utility class for activity borders (can be enhanced with animation) */
 .activity-border {
-  border-width: 2px; /* Or 1px, adjust as needed */
+  border-width: 2px;
   border-style: solid;
-  border-color: hsl(var(--activity-accent-hsl)); /* Use the HSL variable directly */
+  border-color: hsl(var(--activity-accent-hsl));
+  transition: border-color 0.6s cubic-bezier(0.65, 0, 0.35, 1), box-shadow 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Specific activity state styles */
+.card-idle-dim {
+  @apply opacity-90; /* Example for dimming */
+}
+.card-recording-active {
+  @apply animate-pulse-glow;
+  border-color: hsla(var(--activity-accent-hsl), 0.9) !important;
+}
+.button-recording-active {
+  @apply animate-ripple relative overflow-hidden; /* Ensure overflow hidden for ripple */
+  /* Potentially stronger color or distinct style */
+  background-color: hsla(var(--activity-accent-hsl), 0.8) !important;
+  color: hsl(var(--activity-accent-foreground-hsl)) !important;
+}
+.card-playback-active {
+  @apply animate-wave-border;
+  border-width: 2px; /* Ensure border is visible for animation */
+}
+
+/* Class for elements that should have the dynamic primary gradient (lavender replacement) */
+.dynamic-gradient-background {
+  background-image: linear-gradient(135deg, hsl(var(--primary-gradient-start-hsl)), hsl(var(--primary-gradient-end-hsl)));
+}
+
+.sidebar-dynamic-gradient-bg {
+  background-image: linear-gradient(135deg, hsl(var(--sidebar-gradient-start-hsl)), hsl(var(--sidebar-gradient-end-hsl)));
+  background-color: hsla(var(--sidebar-gradient-start-hsl), 0.6); /* Base for blur */
+  @apply backdrop-blur-xl; /* Increased blur for glassmorphism */
 }

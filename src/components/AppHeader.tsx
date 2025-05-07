@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet"; 
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from "@/components/ui/sheet"; 
 import { Menu, MonitorSmartphone, Settings, RadioTower, Video } from "lucide-react";
 import type { Dispatch, SetStateAction } from 'react';
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/60 backdrop-blur-lg supports-[backdrop-filter]:bg-background/50 transition-colors duration-500 ease-in-out-cubic">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center">
           <svg
@@ -28,7 +28,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="mr-2 fill-primary transition-colors duration-500 ease-in-out" 
+            className="mr-2 fill-primary transition-all duration-600 ease-in-out-cubic" 
             aria-label="DualCast Logo"
           >
             <path
@@ -41,7 +41,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
               opacity="0.7"
             />
           </svg>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">DualCast</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground transition-colors duration-600 ease-in-out-cubic">DualCast</h1>
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
@@ -52,7 +52,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
           <div>
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
+                <Button variant="outline" size="icon" className="h-9 w-9 transition-all duration-500 ease-in-out-cubic active:scale-90">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </Button>
@@ -61,10 +61,13 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                 side="right" 
                 className={cn(
                   "w-[280px] p-0", 
-                  "bg-sidebar text-sidebar-foreground border-sidebar-border transition-colors duration-500 ease-in-out" 
+                  "sidebar-dynamic-gradient-bg text-sidebar-foreground border-sidebar-border transition-all duration-700 ease-in-out-cubic" // Apply gradient and transitions
                 )}
               >
-                <SheetHeader className="p-4 border-b border-sidebar-border">
+                 {/* Added SheetTitle and SheetDescription for accessibility as requested by previous fix */}
+                <SheetHeader className="p-4 border-b border-sidebar-border/70">
+                   <SheetTitle className="sr-only">DualCast Menu</SheetTitle> {/* Visually hidden title */}
+                   <SheetDescription className="sr-only">Navigation menu for DualCast application features.</SheetDescription>
                   <div className="flex items-center">
                       <svg
                           width="32"
@@ -72,7 +75,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                           viewBox="0 0 24 24"
                           fill="none"
                           xmlns="http://www.w3.org/2000/svg"
-                          className="mr-2 fill-primary transition-colors duration-500 ease-in-out" 
+                          className="mr-2 fill-primary transition-all duration-600 ease-in-out-cubic"
                           aria-label="DualCast Logo"
                       >
                           <path
@@ -85,7 +88,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                           opacity="0.7"
                           />
                       </svg>
-                      <SheetTitle className="text-xl font-bold text-sidebar-foreground">DualCast Menu</SheetTitle>
+                      <span className="text-xl font-bold text-sidebar-foreground transition-colors duration-600 ease-in-out-cubic">DualCast Menu</span>
                   </div>
                 </SheetHeader>
                 <nav className="grid gap-3 p-4">
@@ -97,14 +100,14 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                             setCurrentTab(item.id);
                           }}
                           className={cn(
-                            "flex items-center space-x-3 justify-start p-3 text-base",
-                            currentTab === item.id && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90",
-                            currentTab !== item.id && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            "flex items-center space-x-3 justify-start p-3 text-base transition-all duration-500 ease-in-out-cubic active:scale-95",
+                            currentTab === item.id && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/80 shadow-md",
+                            currentTab !== item.id && "hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
                           )}
                           aria-current={currentTab === item.id ? "page" : undefined}
                         >
-                          <item.icon className="h-5 w-5 text-primary" /> {/* Ensured icon color syncs */}
-                          <span>{item.label}</span>
+                          <item.icon className="h-5 w-5 text-primary transition-colors duration-600 ease-in-out-cubic" />
+                          <span className="transition-colors duration-600 ease-in-out-cubic">{item.label}</span>
                         </Button>
                     </SheetClose>
                   ))}
