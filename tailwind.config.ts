@@ -14,7 +14,7 @@ export default {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
-  				DEFAULT: 'hsl(var(--card))',
+  				DEFAULT: 'hsl(var(--card))', // Base color, opacity applied in component
   				foreground: 'hsl(var(--card-foreground))'
   			},
   			popover: {
@@ -22,8 +22,8 @@ export default {
   				foreground: 'hsl(var(--popover-foreground))'
   			},
   			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
+  				DEFAULT: 'hsl(var(--primary-hsl))', // Changed to consume HSL variable
+  				foreground: 'hsl(var(--primary-foreground-hsl))' // Changed to consume HSL variable
   			},
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
@@ -37,13 +37,18 @@ export default {
   				DEFAULT: 'hsl(var(--accent))',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
+        activity: { // New activity accent color
+          DEFAULT: 'hsl(var(--activity-accent-hsl))',
+          foreground: 'hsl(var(--activity-accent-foreground-hsl))',
+        },
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
   			border: 'hsl(var(--border))',
+        'activity-accent': 'hsl(var(--activity-accent-hsl))', // Specific for border utility
   			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
+  			ring: 'hsl(var(--ring-hsl))', // Changed to consume HSL variable
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
@@ -54,12 +59,12 @@ export default {
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
-  				primary: 'hsl(var(--sidebar-primary))',
-  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+  				primary: 'hsl(var(--sidebar-primary-hsl))', // Changed to consume HSL variable
+  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground-hsl))', // Changed to consume HSL variable
   				accent: 'hsl(var(--sidebar-accent))',
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
-  				ring: 'hsl(var(--sidebar-ring))'
+  				ring: 'hsl(var(--sidebar-ring-hsl))' // Changed to consume HSL variable
   			}
   		},
   		borderRadius: {
@@ -93,4 +98,3 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
-

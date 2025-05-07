@@ -19,7 +19,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center">
           <svg
@@ -28,16 +28,16 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="mr-2 fill-primary transition-colors duration-500 ease-in-out" // Use fill-primary for SVG
+            className="mr-2 fill-primary transition-colors duration-500 ease-in-out" 
             aria-label="DualCast Logo"
           >
             <path
               d="M7 4C5.89543 4 5 4.89543 5 6V18C5 19.1046 5.89543 20 7 20H10V13H14V20H17C18.1046 20 19 19.1046 19 18V6C19 4.89543 18.1046 4 17 4H7ZM7 6H17V11H7V6Z"
-              fill="currentColor" // currentColor will inherit from fill-primary
+              fill="currentColor" 
             />
             <path
               d="M10 13H14V18H10V13Z"
-              fill="currentColor" // currentColor will inherit from fill-primary
+              fill="currentColor"
               opacity="0.7"
             />
           </svg>
@@ -103,7 +103,7 @@ export default function AppHeader({ currentTab, setCurrentTab }: AppHeaderProps)
                           )}
                           aria-current={currentTab === item.id ? "page" : undefined}
                         >
-                          <item.icon className="h-5 w-5" />
+                          <item.icon className="h-5 w-5 text-primary" /> {/* Ensured icon color syncs */}
                           <span>{item.label}</span>
                         </Button>
                     </SheetClose>

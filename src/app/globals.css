@@ -12,21 +12,26 @@ body {
     --background: 255 100% 97%; /* Off-white / Very Light Lavender */
     --foreground: 240 10% 3.9%; /* Dark Gray */
     
-    --card: 255 100% 98%; /* Off-white / Very Light Lavender */
+    --card: 255 100% 98%; /* Off-white / Very Light Lavender - Base for glassmorphism */
     --card-foreground: 240 10% 3.9%;
     
     --popover: 255 100% 98%;
     --popover-foreground: 240 10% 3.9%;
     
-    /* Default Primary: Lavender (Light Theme) - Fallback */
-    --primary-default: 250 60% 65%;
-    --primary-foreground-default: 240 10% 3.9%; /* Dark text for light primary pastels */
-    --ring-default: 250 60% 55%;
+    /* Default Primary: Lavender (Light Theme) - Fallback if JS fails or for initial render */
+    --primary-hsl-default: 250 60% 65%;
+    --primary-foreground-hsl-default: 240 10% 3.9%; /* Dark text for light primary pastels */
+    --ring-hsl-default: 250 60% 55%;
 
-    /* Dynamic Primary Colors - JS will set --*-dynamic vars */
-    --primary: var(--primary-dynamic, var(--primary-default));
-    --primary-foreground: var(--primary-foreground-dynamic, var(--primary-foreground-default));
-    --ring: var(--ring-dynamic, var(--ring-default));
+    /* Dynamic Primary Colors - JS will set these CSS variables */
+    --primary-hsl: var(--primary-hsl-dynamic, var(--primary-hsl-default));
+    --primary-foreground-hsl: var(--primary-foreground-hsl-dynamic, var(--primary-foreground-hsl-default));
+    --ring-hsl: var(--ring-hsl-dynamic, var(--ring-hsl-default));
+    
+    /* Converted to HSL actual values for Tailwind to consume */
+    --primary: hsl(var(--primary-hsl));
+    --primary-foreground: hsl(var(--primary-foreground-hsl));
+    --ring: hsl(var(--ring-hsl));
     
     --secondary: 200 100% 90%; /* Sky Blue Light */
     --secondary-foreground: 200 60% 30%;
@@ -50,40 +55,39 @@ body {
     --chart-5: 273 47% 82%; /* Soft Lilac for charts */
     --radius: 0.8rem;
 
-    /* Sidebar specific theme variables */
+    /* Sidebar specific theme variables (will follow main primary for dynamic changes) */
     --sidebar-background: var(--background); 
     --sidebar-foreground: var(--foreground);
-    
-    /* Default Sidebar Primary (matches main primary defaults) */
-    --sidebar-primary-default: var(--primary-default);
-    --sidebar-primary-foreground-default: var(--primary-foreground-default);
-    --sidebar-ring-default: var(--ring-default);
-
-    /* Dynamic Sidebar Primary Colors */
-    --sidebar-primary: var(--sidebar-primary-dynamic, var(--sidebar-primary-default));
-    --sidebar-primary-foreground: var(--sidebar-primary-foreground-dynamic, var(--sidebar-primary-foreground-default));
+    --sidebar-primary-hsl: var(--primary-hsl);
+    --sidebar-primary-foreground-hsl: var(--primary-foreground-hsl);
+    --sidebar-ring-hsl: var(--ring-hsl);
     --sidebar-border: var(--border); 
-    --sidebar-ring: var(--sidebar-ring-dynamic, var(--sidebar-ring-default));
     --sidebar-accent: var(--accent); 
     --sidebar-accent-foreground: var(--accent-foreground);
+
+    /* Activity Accent Colors - JS will set these */
+    --activity-accent-hsl: 250 30% 85%; /* Default to border color */
+    --activity-accent-foreground-hsl: 240 10% 3.9%; /* Default to foreground */
+    --activity-accent: hsl(var(--activity-accent-hsl));
+    --activity-accent-foreground: hsl(var(--activity-accent-foreground-hsl));
   }
 
   .dark {
     --background: 240 10% 10%;
     --foreground: 0 0% 98%;
     
-    --card: 240 10% 12%;
+    --card: 240 10% 12%; /* Base for glassmorphism */
     --card-foreground: 0 0% 98%;
     
     --popover: 240 10% 12%;
     --popover-foreground: 0 0% 98%;
     
     /* Default Primary: Lavender (Dark Theme) - Fallback */
-    --primary-default: 250 50% 55%;
-    --primary-foreground-default: 0 0% 98%; /* Light text for dark primary pastels */
-    --ring-default: 250 50% 65%;
+    --primary-hsl-default: 250 50% 55%;
+    --primary-foreground-hsl-default: 0 0% 98%; /* Light text for dark primary pastels */
+    --ring-hsl-default: 250 50% 65%;
     
-    /* --primary, --primary-foreground, --ring will use dynamic vars or these defaults */
+    /* --primary-hsl, etc. will use dynamic vars or these defaults */
     
     --secondary: 200 50% 30%; /* Darker Sky Blue */
     --secondary-foreground: 0 0% 98%;
@@ -103,13 +107,14 @@ body {
     /* Dark Sidebar specific theme variables */
     --sidebar-background: var(--background); 
     --sidebar-foreground: var(--foreground);
-    --sidebar-primary-default: var(--primary-default);
-    --sidebar-primary-foreground-default: var(--primary-foreground-default);
-    --sidebar-ring-default: var(--ring-default);
-    /* --sidebar-primary, etc. will use dynamic vars or these defaults */
+    /* --sidebar-primary-hsl, etc. will use dynamic vars or these defaults */
     --sidebar-border: var(--border);
     --sidebar-accent: var(--accent);
     --sidebar-accent-foreground: var(--accent-foreground);
+
+    /* Activity Accent Colors - Dark Mode Defaults */
+    --activity-accent-hsl: 240 5% 25%; /* Default to border color */
+    --activity-accent-foreground-hsl: 0 0% 98%; /* Default to foreground */
   }
 }
 
@@ -123,14 +128,23 @@ body {
     transition: background-color 0.5s ease, color 0.5s ease;
   }
   
-  /* Add transition to elements that use primary colors */
+  /* Add transition to elements that use primary, accent, or activity accent colors */
   .bg-primary, .text-primary, .border-primary, .ring-primary,
   .bg-primary-foreground, .text-primary-foreground,
   .bg-sidebar, .text-sidebar-foreground,
   .bg-sidebar-primary, .text-sidebar-primary, .border-sidebar-primary, .ring-sidebar-primary,
-  .bg-accent, .text-accent, .border-accent, .ring-accent, /* ensure accent also transitions */
-  .fill-primary /* for SVG logo */
+  .bg-accent, .text-accent, .border-accent, .ring-accent,
+  .border-activity-accent, .text-activity-accent, .bg-activity-accent,
+  .fill-primary, /* for SVG logo */
+  .bg-card /* for card background opacity transition */
    {
-    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, fill 0.5s ease; /* box-shadow for ring, fill for SVGs */
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, fill 0.5s ease, backdrop-filter 0.5s ease;
   }
+}
+
+/* Utility class for activity borders */
+.activity-border {
+  border-width: 2px; /* Or 1px, adjust as needed */
+  border-style: solid;
+  border-color: hsl(var(--activity-accent-hsl)); /* Use the HSL variable directly */
 }
