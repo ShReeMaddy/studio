@@ -150,7 +150,8 @@ body {
   .border-activity-accent, .text-activity-accent, .bg-activity-accent,
   .fill-primary, /* for SVG logo */
   .bg-card, /* for card background opacity/color transition */
-  .dynamic-gradient-background /* For areas replacing lavender with gradient */
+  .dynamic-gradient-background, /* For areas replacing lavender with gradient */
+  .dynamic-gradient-text /* For text with gradient */
    {
     transition: background-color 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
                 color 0.6s cubic-bezier(0.65, 0, 0.35, 1), 
@@ -174,25 +175,30 @@ body {
 .card-idle-dim {
   @apply opacity-90; /* Example for dimming */
 }
-.card-recording-active {
+.card-recording-active, .card-connecting-active, .card-syncing-active { /* Grouped active states */
   @apply animate-pulse-glow;
   border-color: hsla(var(--activity-accent-hsl), 0.9) !important;
 }
 .button-recording-active {
-  @apply animate-ripple relative overflow-hidden; /* Ensure overflow hidden for ripple */
-  /* Potentially stronger color or distinct style */
+  @apply animate-ripple relative overflow-hidden; 
   background-color: hsla(var(--activity-accent-hsl), 0.8) !important;
   color: hsl(var(--activity-accent-foreground-hsl)) !important;
 }
 .card-playback-active {
   @apply animate-wave-border;
-  border-width: 2px; /* Ensure border is visible for animation */
+  border-width: 2px; 
 }
 
 /* Class for elements that should have the dynamic primary gradient (lavender replacement) */
 .dynamic-gradient-background {
   background-image: linear-gradient(135deg, hsl(var(--primary-gradient-start-hsl)), hsl(var(--primary-gradient-end-hsl)));
 }
+
+.dynamic-gradient-text {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, hsl(var(--primary-gradient-start-hsl)), hsl(var(--primary-gradient-end-hsl)));
+}
+
 
 .sidebar-dynamic-gradient-bg {
   background-image: linear-gradient(135deg, hsl(var(--sidebar-gradient-start-hsl)), hsl(var(--sidebar-gradient-end-hsl)));

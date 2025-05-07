@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection
+    // - Users can read their own profile
+    // - Users can create their own profile on signup
+    // - Users can update their own profile (username, themePref, profilePictureUrl, deviceType, lastLoginTime, enableGradient)
+    // - No one can delete user profiles (or implement soft delete if needed)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Allow updates only to specific fields they own
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly(['username', 'profilePictureUrl', 'themePref', 'deviceType', 'lastLoginTime', 'enableGradient', 'email']); // Added email, though typically not updated by user directly.
+      allow delete: if false; // Prevent deletion of user documents
+    }
+
+    // Paired Devices collection
+    // - Authenticated users can create a pairing document (e.g. Device A initiates)
+    // - Only involved devices (identified by UIDs/UUIDs stored in the doc) can read/update/delete their pairing
+    //   This requires careful structuring of the document to check against request.auth.uid
+    //   or a more complex system with pairing codes/tokens if devices aren't always user-bound.
+    // For this example, assuming deviceA_uid is the Firebase auth UID.
+    match /paired_devices/{pairId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.deviceA_uid || request.auth.uid == resource.data.deviceB_uid); // Assuming deviceB_uid is also a Firebase UID for simplicity here
+      allow create: if request.auth != null; // User can initiate pairing
+      allow update: if request.auth != null && (request.auth.uid == resource.data.deviceA_uid || request.auth.uid == resource.data.deviceB_uid); // Only involved devices can update status (e.g., confirm, disconnect)
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.deviceA_uid || request.auth.uid == resource.data.deviceB_uid); // Only involved devices can delete pairing
+      // Add validation for fields like deviceA_uid, deviceB_uuid, status, etc.
+      // e.g. ensure deviceA_uid is the requestor's UID on create for deviceA_info
+    }
+
+    // Recordings metadata (if storing metadata in Firestore alongside Storage)
+    // - Users can create metadata for their own recordings
+    // - Users can read/delete metadata for their own recordings
+    match /recordings_metadata/{userId}/{recordingId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.userId == request.auth.uid; // Ensure userId in doc matches creator
+      allow update: if false; // Typically, recording metadata might be immutable or have specific update paths
+    }
+
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
