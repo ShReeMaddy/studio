@@ -699,24 +699,18 @@ export default function HomePage() {
                             onValueChange={(value: string) => setThemePreference(value as ThemePreference)}
                             className="space-y-2"
                         >
-                            <FormItem className="flex items-center space-x-3">
-                                <FormControl>
-                                     <RadioGroupItem value="dynamic" id="dynamic-theme"/>
-                                </FormControl>
+                            <div className="flex items-center space-x-3">
+                                <RadioGroupItem value="dynamic" id="dynamic-theme"/>
                                <Label htmlFor="dynamic-theme" className="font-normal">Dynamic (Time-based)</Label>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3">
-                                <FormControl>
-                                     <RadioGroupItem value="daylight" id="daylight-theme"/>
-                                </FormControl>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <RadioGroupItem value="daylight" id="daylight-theme"/>
                                 <Label htmlFor="daylight-theme" className="font-normal">Soft Daylight (Static)</Label>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3">
-                                <FormControl>
-                                     <RadioGroupItem value="night" id="night-theme"/>
-                                </FormControl>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <RadioGroupItem value="night" id="night-theme"/>
                                <Label htmlFor="night-theme" className="font-normal">Soft Night (Static)</Label>
-                            </FormItem>
+                            </div>
                         </RadioGroup>
                       </div>
                     </CardContent>
