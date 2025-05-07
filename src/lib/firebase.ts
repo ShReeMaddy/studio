@@ -18,11 +18,11 @@ const firebaseConfig = {
 let firebaseAppInstance;
 
 function createFirebaseApp() {
+  if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.storageBucket || !firebaseConfig.messagingSenderId || !firebaseConfig.appId) {
+    console.error("Firebase configuration is incomplete. Check your environment variables.");
+    return null;
+  }
   try {
-    if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.storageBucket || !firebaseConfig.messagingSenderId || !firebaseConfig.appId) {
-      console.error("Firebase configuration is incomplete. Check your environment variables.");
-      return null;
-    }
     firebaseAppInstance = getApps().length ? getApp() : initializeApp(firebaseConfig);
     return firebaseAppInstance;
   } catch (error) {
