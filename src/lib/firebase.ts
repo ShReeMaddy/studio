@@ -19,6 +19,10 @@ let firebaseAppInstance;
 
 function createFirebaseApp() {
   try {
+    if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId || !firebaseConfig.storageBucket || !firebaseConfig.messagingSenderId || !firebaseConfig.appId) {
+      console.error("Firebase configuration is incomplete. Check your environment variables.");
+      return null;
+    }
     firebaseAppInstance = getApps().length ? getApp() : initializeApp(firebaseConfig);
     return firebaseAppInstance;
   } catch (error) {
@@ -34,10 +38,14 @@ let remoteConfigInstance;
 
 async function initializeFirebaseServices(app: any) {
   if (app) {
-    authInstance = getAuth(app);
-    dbInstance = getFirestore(app);
-    storageInstance = getStorage(app);
-    remoteConfigInstance = getRemoteConfig(app);
+    try {
+      authInstance = getAuth(app);
+      dbInstance = getFirestore(app);
+      storageInstance = getStorage(app);
+      remoteConfigInstance = getRemoteConfig(app);
+    } catch (e) {
+      console.error('Error initializing firebase services', e);
+    }
   }
 }
 
